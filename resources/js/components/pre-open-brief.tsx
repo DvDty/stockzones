@@ -3,11 +3,7 @@ import { clock, duration, pct, tone, zoneName } from '@/lib/time';
 import { cn } from '@/lib/utils';
 import type { Row, Timeline, Zone } from '@/types/timeline';
 
-interface Bell {
-    t: number;
-    kind: 'open' | 'close';
-    city: string;
-}
+const REGION_ORDER = ['Americas', 'Europe', 'Asia-Pacific'];
 
 /**
  * The "before New York" view: countdown to the US open, what the futures
@@ -25,7 +21,6 @@ export function PreOpenBrief({
     const markets = data.rows.filter((r) => r.parent === null);
     const sp = markets.find((r) => r.exchange === 'nyse');
     const futures = markets.find((r) => r.kind === 'future');
-    const cities = new Map(data.exchanges.map((e) => [e.key, e.city]));
 
     const regions = useMemo(() => {
         const groups = new Map<string, Row[]>();
@@ -34,44 +29,11 @@ export function PreOpenBrief({
             groups.set(row.region, [...(groups.get(row.region) ?? []), row]);
         }
 
-        return [...groups.entries()];
+        // US first: it's the main focus, the others lead into it.
+        return REGION_ORDER.filter((r) => groups.has(r)).map(
+            (r) => [r, groups.get(r) ?? []] as const,
+        );
     }, [markets]);
-
-    const bells = useMemo(() => {
-        const seen = new Set<string>();
-        const events: Bell[] = [];
-
-        for (const row of markets) {
-            if (row.kind === 'future' || seen.has(row.exchange)) {
-                continue;
-            }
-
-            seen.add(row.exchange);
-            const city = cities.get(row.exchange) ?? row.exchange;
-
-            for (const s of row.sessions.filter((s) => !s.holiday)) {
-                // Lunch breaks aren't bells: only the day's first open and last close.
-                const sameDay = row.sessions.filter((o) => o.day === s.day);
-
-                if (s.start > now && s === sameDay[0]) {
-                    events.push({ t: s.start, kind: 'open', city });
-                }
-
-                if (s.end > now && s === sameDay[sameDay.length - 1]) {
-                    events.push({ t: s.end, kind: 'close', city });
-                }
-            }
-
-            if (
-                row.next_open &&
-                !events.some((e) => e.t === row.next_open && e.city === city)
-            ) {
-                events.push({ t: row.next_open, kind: 'open', city });
-            }
-        }
-
-        return events.sort((a, b) => a.t - b.t).slice(0, 6);
-    }, [markets, cities, now]);
 
     const nyOpen = sp?.status === 'open';
     const nyNext = nyOpen ? sp?.next_close : sp?.next_open;
@@ -133,36 +95,6 @@ export function PreOpenBrief({
                 {regions.map(([region, rows]) => (
                     <RegionCard key={region} region={region} rows={rows} />
                 ))}
-                <div className="rounded-xl border border-line bg-panel p-4 sm:col-span-3">
-                    <div className="mb-2 text-[11px] font-medium tracking-[0.12em] text-dim uppercase">
-                        Next bells
-                    </div>
-                    <div className="flex flex-wrap gap-x-5 gap-y-1.5">
-                        {bells.map((b) => (
-                            <div
-                                key={`${b.city}${b.t}${b.kind}`}
-                                className="flex items-baseline gap-1.5 text-[12.5px]"
-                            >
-                                <span
-                                    className={
-                                        b.kind === 'open'
-                                            ? 'text-up'
-                                            : 'text-muted'
-                                    }
-                                >
-                                    {b.kind === 'open' ? '▲' : '▼'}
-                                </span>
-                                <span className="text-fg">{b.city}</span>
-                                <span className="text-dim">
-                                    {b.kind === 'open' ? 'opens' : 'closes'}
-                                </span>
-                                <span className="num font-mono text-muted">
-                                    {duration(b.t - now)}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
             </div>
         </div>
     );

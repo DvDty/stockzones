@@ -16,13 +16,6 @@
 return [
 
     'exchanges' => [
-        'asx' => [
-            'name' => 'ASX',
-            'city' => 'Sydney',
-            'timezone' => 'Australia/Sydney',
-            'sessions' => [['10:00', '16:00']],
-            'yahoo_codes' => ['ASX'],
-        ],
         'tse' => [
             'name' => 'Tokyo Stock Exchange',
             'city' => 'Tokyo',
@@ -101,7 +94,6 @@ return [
     */
 
     'markets' => [
-        'asx200' => ['name' => 'ASX 200', 'symbol' => '^AXJO', 'exchange' => 'asx', 'region' => 'Asia-Pacific'],
         'nikkei' => ['name' => 'Nikkei 225', 'symbol' => '^N225', 'exchange' => 'tse', 'region' => 'Asia-Pacific'],
         'kospi' => ['name' => 'KOSPI', 'symbol' => '^KS11', 'exchange' => 'krx', 'region' => 'Asia-Pacific'],
         'shanghai' => ['name' => 'SSE Composite', 'symbol' => '000001.SS', 'exchange' => 'sse', 'region' => 'Asia-Pacific'],
