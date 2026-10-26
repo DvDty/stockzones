@@ -90,19 +90,28 @@ export function PreOpenBrief({
                                 nyOpen ? 'bg-up' : 'bg-bell',
                             )}
                         />
-                        <span className="text-[15px] text-muted">
-                            {nyOpen ? 'Open · closes in' : 'Opens in'}
+                        <span
+                            className={cn(
+                                'text-[13px] font-medium',
+                                nyOpen ? 'text-up' : 'text-bell',
+                            )}
+                        >
+                            {nyOpen ? 'Open now' : 'Closed'}
                         </span>
+                    </div>
+                    <div className="mt-2 text-[13px] text-muted">
+                        {nyOpen ? 'Closes in' : 'Opens in'}
                     </div>
                     <div className="num mt-0.5 font-mono text-[34px] leading-none font-medium tracking-tight">
                         {nyNext ? duration(nyNext - now) : '—'}
                     </div>
                     {nyNext && (
                         <div className="mt-1.5 text-[12px] text-dim">
+                            {nyOpen ? 'Closes at' : 'Opens at'}{' '}
+                            {clock(nyNext, 'America/New_York')} New York
+                            {' · '}
                             {clock(nyNext, zoneName(zone))}{' '}
                             {zone === 'utc' ? 'UTC' : 'your time'}
-                            {' · '}
-                            {clock(nyNext, 'America/New_York')} New York
                         </div>
                     )}
                 </div>
