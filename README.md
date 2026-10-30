@@ -27,12 +27,32 @@ php artisan schedule:work
 Switches: range (24h, 3 days, week), what % is measured against (previous close or window start),
 shared or per-row scale, and local time or UTC.
 
-Hover a market row and press **+** to add a stock listed on that exchange (e.g. Rheinmetall under DAX).
+Stocks shown under a market are listed in `config/stockzones.php` under `stocks`. When running
+the Laravel app you can also hover a market row and press **+** to add one listed on that exchange.
+
+## Published static site
+
+`.github/workflows/publish.yml` runs every hour (and on every push to `main`). It fetches fresh
+data, writes it as static JSON and deploys the dashboard to GitHub Pages. No server or database
+is kept between runs, so hosting is free as long as the repository is public.
+
+In the static site, stocks come only from the config (there's no **+**), and open/closed status is
+worked out in the browser from the trading schedule, so countdowns stay right while the data ages.
+
+To try the static build locally:
+
+```bash
+npm run build:static
+php artisan stockzones:export dist/data
+```
+
+Then serve `dist/` with any static file server.
 
 ## Where things live
 
-- `config/stockzones.php`: exchanges (local trading hours and timezone) and the markets shown
+- `config/stockzones.php`: exchanges (local trading hours and timezone), the markets shown and their stocks
 - `app/Services/MarketCalendar.php`: turns local trading hours into UTC sessions (DST-safe)
 - `app/Services/MarketData.php`: syncing, % change against the official previous close, holidays, open/closed status
 - `app/Services/YahooFinance.php`: data source (unofficial API, swappable)
 - `resources/js/components`: `swimlanes`, `overlay-chart`, `heatmap`, `pre-open-brief`
+- `resources/js/static.tsx`, `resources/static/index.html`, `vite.static.config.ts`: the static build

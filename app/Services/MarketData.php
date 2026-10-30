@@ -31,7 +31,8 @@ class MarketData
     ) {}
 
     /**
-     * Every row on the timeline: configured markets, each followed by the stocks added under it.
+     * Every row on the timeline: configured markets, each followed by its configured
+     * stocks and the stocks added under it from the UI.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -52,16 +53,26 @@ class MarketData
                 'watchlist_id' => null,
             ];
 
+            $stocks = collect(config("stockzones.stocks.$key", []))
+                ->map(fn (string $name, string $symbol) => ['symbol' => $symbol, 'name' => $name, 'id' => null])
+                ->values();
+
             foreach ($watchlist->get($key, []) as $item) {
+                if (! $stocks->contains('symbol', $item->symbol)) {
+                    $stocks->push(['symbol' => $item->symbol, 'name' => $item->name, 'id' => $item->id]);
+                }
+            }
+
+            foreach ($stocks as $item) {
                 $rows[] = [
-                    'key' => $key.':'.$item->symbol,
-                    'name' => $item->name,
-                    'symbol' => $item->symbol,
+                    'key' => $key.':'.$item['symbol'],
+                    'name' => $item['name'],
+                    'symbol' => $item['symbol'],
                     'kind' => 'stock',
                     'region' => $market['region'],
                     'exchange' => $market['exchange'],
                     'parent' => $key,
-                    'watchlist_id' => $item->id,
+                    'watchlist_id' => $item['id'],
                 ];
             }
         }
@@ -263,6 +274,12 @@ class MarketData
             )),
             'points' => array_map(fn (array $p) => [$p[0], $p[1], $p[2]], $points),
             'last' => $last ? ['t' => $last[0], 'price' => $last[1], 'pct' => $last[2]] : null,
+            // From a day ago to a few days ahead, so a client can work out the
+            // status itself while this payload ages.
+            'schedule' => array_values(array_filter(
+                $sessions,
+                fn (array $session) => $session['end'] > $now - 86400,
+            )),
             'previous_close' => $baseline,
             'status' => $status,
             'next_open' => $nextOpen,

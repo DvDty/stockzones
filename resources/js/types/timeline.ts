@@ -31,6 +31,8 @@ export interface Row {
     parent: string | null;
     watchlist_id: number | null;
     sessions: Session[];
+    /** Sessions from a day before the data was built to a few days after. */
+    schedule: Session[];
     points: Point[];
     last: { t: number; price: number; pct: number | null } | null;
     previous_close: number | null;

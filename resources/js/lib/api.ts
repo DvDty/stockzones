@@ -19,6 +19,9 @@ async function request<T>(
     return (response.status === 204 ? null : await response.json()) as T;
 }
 
+/** Built as a static site that reads pre-built JSON, with no Laravel backend. */
+export const isStatic = import.meta.env.VITE_STATIC === 'true';
+
 export interface SearchResult {
     symbol: string;
     name: string;
@@ -28,7 +31,11 @@ export interface SearchResult {
 
 export const api = {
     timeline: (range: Range) =>
-        request<Timeline>(`/api/timeline?range=${range}`),
+        isStatic
+            ? request<Timeline>(
+                  `${import.meta.env.BASE_URL}data/timeline-${range}.json`,
+              )
+            : request<Timeline>(`/api/timeline?range=${range}`),
 
     search: (q: string, market: string) =>
         request<{ exchange: string; results: SearchResult[] }>(

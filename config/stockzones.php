@@ -88,8 +88,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | The rows on the timeline, in "follow the sun" order. Each is an index
-    | (or futures contract) on an exchange above. Individual stocks are added
-    | from the UI and attach to one of these rows.
+    | (or futures contract) on an exchange above.
     |
     */
 
@@ -105,6 +104,21 @@ return [
         'es' => ['name' => 'S&P 500 futures', 'symbol' => 'ES=F', 'exchange' => 'cme', 'region' => 'Americas', 'kind' => 'future'],
         'sp500' => ['name' => 'S&P 500', 'symbol' => '^GSPC', 'exchange' => 'nyse', 'region' => 'Americas'],
         'nasdaq' => ['name' => 'Nasdaq Composite', 'symbol' => '^IXIC', 'exchange' => 'nyse', 'region' => 'Americas'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Stocks
+    |--------------------------------------------------------------------------
+    |
+    | Individual stocks shown under a market row, as Yahoo symbol => name. The
+    | published static site only shows these; when running the Laravel app,
+    | stocks can also be added from the UI.
+    |
+    */
+
+    'stocks' => [
+        'dax' => ['RHM.DE' => 'Rheinmetall'],
     ],
 
     // Minutes before price data for a symbol is fetched again.

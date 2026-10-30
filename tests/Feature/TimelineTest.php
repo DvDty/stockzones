@@ -3,6 +3,7 @@
 use App\Models\WatchlistItem;
 use App\Services\MarketData;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 
 function at(string $time): int
@@ -25,7 +26,7 @@ function chart(array $bars, string $timezone = 'Europe/Berlin'): array
 beforeEach(function () {
     config(['stockzones.markets' => [
         'dax' => ['name' => 'DAX', 'symbol' => '^GDAXI', 'exchange' => 'xetra', 'region' => 'Europe'],
-    ]]);
+    ], 'stockzones.stocks' => []]);
 });
 
 it('measures each day against the previous official close', function () {
@@ -92,4 +93,33 @@ it('adds and removes watchlist stocks under a market', function () {
     $this->deleteJson("/api/watchlist/{$id}")->assertNoContent();
 
     expect(WatchlistItem::count())->toBe(0);
+});
+
+it('exports every range as static JSON, including configured stocks', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-10-26 12:00', 'UTC'));
+    config(['stockzones.stocks' => ['dax' => ['RHM.DE' => 'Rheinmetall']]]);
+    $path = sys_get_temp_dir().'/stockzones-export-'.uniqid();
+
+    Http::fake(fn () => Http::response(chart([[at('2026-10-26 11:55'), 102.0]])));
+
+    $this->artisan('stockzones:export', ['path' => $path])->assertSuccessful();
+
+    $timeline = json_decode(file_get_contents("$path/timeline-24h.json"), true);
+
+    expect(glob("$path/*.json"))->toHaveCount(3)
+        ->and(array_column($timeline['rows'], 'key'))->toBe(['dax', 'dax:RHM.DE'])
+        ->and($timeline['rows'][1]['watchlist_id'])->toBeNull()
+        // The schedule runs days ahead, so the page can count down to opens after the window.
+        ->and(end($timeline['rows'][0]['schedule'])['start'])->toBeGreaterThan(at('2026-10-30 00:00'));
+
+    File::deleteDirectory($path);
+});
+
+it('fails the export rather than publish empty data', function () {
+    $path = sys_get_temp_dir().'/stockzones-export-'.uniqid();
+    Http::fake(fn () => Http::response('Too Many Requests', 429));
+
+    $this->artisan('stockzones:export', ['path' => $path])->assertFailed();
+
+    File::deleteDirectory($path);
 });

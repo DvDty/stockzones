@@ -4,6 +4,7 @@
     "type": "module",
     "scripts": {
         "build": "vp build",
+        "build:static": "vp build --config vite.static.config.ts",
         "build:ssr": "vp build && vp build --ssr",
         "dev": "vp dev",
         "check": "vp check",

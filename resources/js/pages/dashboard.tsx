@@ -1,10 +1,13 @@
 import { Head } from '@inertiajs/react';
+import { useMemo } from 'react';
 import { Heatmap } from '@/components/heatmap';
 import { OverlayChart } from '@/components/overlay-chart';
 import { PreOpenBrief } from '@/components/pre-open-brief';
 import { Swimlanes } from '@/components/swimlanes';
 import type { ScaleMode } from '@/components/swimlanes';
 import { useNow, useStored, useTimeline } from '@/hooks/use-timeline';
+import { isStatic } from '@/lib/api';
+import { withLiveStatus } from '@/lib/status';
 import { duration, zoneName } from '@/lib/time';
 import { cn } from '@/lib/utils';
 import type { Baseline, Range, View, Zone } from '@/types/timeline';
@@ -29,8 +32,13 @@ export default function Dashboard() {
         'row',
     ]);
     const [zone, setZone] = useStored<Zone>('zone', 'local', ['local', 'utc']);
-    const { data, error, loading, reload } = useTimeline(range);
+    const { data: loaded, error, loading, reload } = useTimeline(range);
     const now = useNow();
+    // The data can be an hour old, so open/closed is worked out here rather than trusted.
+    const data = useMemo(
+        () => loaded && withLiveStatus(loaded, now),
+        [loaded, now],
+    );
 
     return (
         <>
@@ -157,9 +165,9 @@ export default function Dashboard() {
                         )}
 
                         <p className="text-[11.5px] text-dim">
-                            Index data from Yahoo Finance, 5–15 min bars, may be
-                            delayed. Hover a market row and press + to add a
-                            stock from that exchange.
+                            {isStatic
+                                ? 'Index data from Yahoo Finance, 5–30 min bars, updated about hourly.'
+                                : 'Index data from Yahoo Finance, 5–30 min bars, may be delayed. Hover a market row and press + to add a stock from that exchange.'}
                         </p>
                     </div>
                 )}

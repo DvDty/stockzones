@@ -3,7 +3,7 @@ import type { ScaleLinear } from 'd3';
 import { useId, useMemo, useRef, useState } from 'react';
 import { AddStock } from '@/components/add-stock';
 import { useElementWidth } from '@/hooks/use-element-width';
-import { api } from '@/lib/api';
+import { api, isStatic } from '@/lib/api';
 import { plotPoints, tradingAt, valueAt } from '@/lib/series';
 import type { PlotPoint } from '@/lib/series';
 import {
@@ -610,7 +610,7 @@ function LaneLabel({
                             FUT
                         </span>
                     )}
-                    {!isStock && row.kind !== 'future' && (
+                    {!isStatic && !isStock && row.kind !== 'future' && (
                         <button
                             type="button"
                             onClick={() => setAdding(true)}
@@ -620,7 +620,7 @@ function LaneLabel({
                             +
                         </button>
                     )}
-                    {isStock && (
+                    {isStock && row.watchlist_id !== null && (
                         <button
                             type="button"
                             onClick={remove}
