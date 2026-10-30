@@ -111,15 +111,19 @@ class YahooFinance
             return [];
         }
 
-        return collect($response->json('quotes', []))
-            ->filter(fn (array $quote) => isset($quote['symbol'], $quote['exchange']))
-            ->map(fn (array $quote) => [
-                'symbol' => $quote['symbol'],
-                'name' => trim($quote['longname'] ?? $quote['shortname'] ?? $quote['symbol']),
-                'exchange' => $quote['exchange'],
-                'type' => $quote['quoteType'] ?? 'EQUITY',
-            ])
-            ->values()
-            ->all();
+        $results = [];
+
+        foreach ($response->collect('quotes') as $quote) {
+            if (is_array($quote) && isset($quote['symbol'], $quote['exchange'])) {
+                $results[] = [
+                    'symbol' => $quote['symbol'],
+                    'name' => trim($quote['longname'] ?? $quote['shortname'] ?? $quote['symbol']),
+                    'exchange' => $quote['exchange'],
+                    'type' => $quote['quoteType'] ?? 'EQUITY',
+                ];
+            }
+        }
+
+        return $results;
     }
 }

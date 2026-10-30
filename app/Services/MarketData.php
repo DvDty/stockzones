@@ -53,21 +53,21 @@ class MarketData
                 'watchlist_id' => null,
             ];
 
-            $stocks = collect(config("stockzones.stocks.$key", []))
-                ->map(fn (string $name, string $symbol) => ['symbol' => $symbol, 'name' => $name, 'id' => null])
-                ->values();
+            $stocks = [];
 
-            foreach ($watchlist->get($key, []) as $item) {
-                if (! $stocks->contains('symbol', $item->symbol)) {
-                    $stocks->push(['symbol' => $item->symbol, 'name' => $item->name, 'id' => $item->id]);
-                }
+            foreach (config()->array("stockzones.stocks.$key", []) as $symbol => $name) {
+                $stocks[$symbol] = ['name' => $name, 'id' => null];
             }
 
-            foreach ($stocks as $item) {
+            foreach ($watchlist->get($key, []) as $item) {
+                $stocks[$item->symbol] ??= ['name' => $item->name, 'id' => $item->id];
+            }
+
+            foreach ($stocks as $symbol => $item) {
                 $rows[] = [
-                    'key' => $key.':'.$item['symbol'],
+                    'key' => $key.':'.$symbol,
                     'name' => $item['name'],
-                    'symbol' => $item['symbol'],
+                    'symbol' => (string) $symbol,
                     'kind' => 'stock',
                     'region' => $market['region'],
                     'exchange' => $market['exchange'],
@@ -152,7 +152,7 @@ class MarketData
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array{range: string, now: int, from: int, to: int, synced_at: mixed, exchanges: array<int, array<string, mixed>>, rows: array<int, array<string, mixed>>}
      */
     public function timeline(string $range): array
     {
@@ -162,7 +162,7 @@ class MarketData
         $to = $now + $config['ahead'];
 
         $rows = $this->rows();
-        $exchanges = config('stockzones.exchanges');
+        $exchanges = config()->array('stockzones.exchanges');
 
         $this->refresh(array_column($rows, 'symbol'));
 
@@ -194,7 +194,7 @@ class MarketData
                 'name' => $exchange['name'],
                 'city' => $exchange['city'],
                 'timezone' => $exchange['timezone'],
-            ])->values(),
+            ])->values()->all(),
             'rows' => array_map(function (array $row) use ($exchanges, $bars, $closes, $from, $to, $now, $config) {
                 $series = $bars->get($row['symbol'], collect())
                     ->map(fn (PriceBar $bar) => [$bar->ts, $bar->close])
@@ -213,7 +213,7 @@ class MarketData
     /**
      * Sessions, % change points and current status for one symbol.
      *
-     * @param  array<string, mixed>  $exchange
+     * @param  array{timezone: string, sessions: array<int, array{string, string}>, days?: array<int, int>}  $exchange
      * @param  array<int, array{0: int, 1: float}>  $bars  [ts, close] oldest first
      * @param  array<string, float>  $daily  official closes by local date, oldest first
      * @return array<string, mixed>

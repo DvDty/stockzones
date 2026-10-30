@@ -18,23 +18,29 @@ Artisan::command('stockzones:export {path=public/data : Directory to write the J
     $data->refresh(array_column($rows, 'symbol'), force: true);
 
     $path = $this->argument('path');
+
+    if (! is_string($path)) {
+        $this->error('Give a single directory path.');
+
+        return 1;
+    }
     File::ensureDirectoryExists($path);
 
     foreach (array_keys(MarketData::RANGES) as $range) {
         $timeline = $data->timeline($range);
-        File::put("$path/timeline-$range.json", json_encode($timeline, JSON_UNESCAPED_SLASHES));
+        File::put("$path/timeline-$range.json", json_encode($timeline, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
 
-        $empty = collect($timeline['rows'])->filter(fn (array $row) => $row['last'] === null)->pluck('symbol');
+        $empty = array_column(array_filter($timeline['rows'], fn (array $row) => $row['last'] === null), 'symbol');
 
         // Publishing nothing would replace the last good data, so fail instead.
-        if ($empty->count() === count($rows)) {
+        if (count($empty) === count($rows)) {
             $this->error('No price data for any symbol; is Yahoo blocking requests?');
 
             return 1;
         }
 
-        if ($empty->isNotEmpty()) {
-            $this->warn("$range: no data for ".$empty->implode(', '));
+        if ($empty !== []) {
+            $this->warn("$range: no data for ".implode(', ', $empty));
         }
     }
 
